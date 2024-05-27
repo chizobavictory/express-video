@@ -10,15 +10,18 @@ app.use(cors()); // Use the CORS middleware
 app.get('/proxy', async (req, res) => {
   const { targetUrl, cookie } = req.query;
 
-  if (!targetUrl || !cookie) {
-    return res.status(400).send('Missing targetUrl or cookie parameter');
+  if (!targetUrl) {
+    return res.status(400).send('Missing targetUrl parameter');
   }
 
   try {
+    const headers = {};
+    if (cookie) {
+      headers.Cookie = decodeURIComponent(cookie);
+    }
+
     const response = await axios.get(targetUrl, {
-      headers: {
-        Cookie: decodeURIComponent(cookie),
-      },
+      headers,
       responseType: 'arraybuffer',
     });
 
