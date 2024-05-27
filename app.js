@@ -1,35 +1,47 @@
 const express = require('express');
 const axios = require('axios');
+const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = 3001;
 
-app.use(cors()); // Use the CORS middleware
+// Middleware
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
 
+app.use(cors(corsOptions));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+// Proxy endpoint
 app.get('/proxy', async (req, res) => {
   const { targetUrl, cookie } = req.query;
 
-  if (!targetUrl || !cookie) {
-    return res.status(400).send('Missing targetUrl or cookie parameter');
-  }
+  console.log(`Proxying request to: ${targetUrl}`);
+  console.log(`With cookie: ${cookie}`);
 
   try {
     const response = await axios.get(targetUrl, {
       headers: {
-        Cookie: decodeURIComponent(cookie),
+        Cookie: cookie, // Attach the cookie to headers
       },
       responseType: 'arraybuffer',
     });
 
-    res.set('Content-Type', response.headers['content-type']);
+    res.set('Content-Type', 'application/octet-stream');
+    res.set('Access-Control-Allow-Origin', '*');
     res.send(response.data);
   } catch (error) {
-    console.error('Error fetching video:', error.message);
-    res.status(500).send(`Error fetching video: ${error.message}`);
+    console.error(`Error fetching video: ${error.message}`);
+    res.status(error.response?.status || 500).send(error.message);
   }
 });
 
+// Start server
 app.listen(port, () => {
-  console.log(`Proxy server listening at http://localhost:${port}`);
+  console.log(`Server is running at http://localhost:${port}`);
 });
