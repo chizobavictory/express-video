@@ -1,28 +1,27 @@
 const express = require('express');
 const axios = require('axios');
+const cors = require('cors');
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
+
+app.use(cors());
+app.use(express.json());
 
 app.get('/proxy', async (req, res) => {
-  const { url } = req.query;
-  const cookies = req.headers['cookie'] || '';
-
-  if (!url) {
-    return res.status(400).send('URL is required');
-  }
-
   try {
-    const response = await axios.get(url, {
+    const targetUrl = req.headers['target-url'];
+    const cookie = req.headers['cookie'];
+
+    const response = await axios.get(targetUrl, {
       headers: {
-        'Cookie': cookies,
+        Cookie: cookie,
       },
       responseType: 'stream',
     });
 
-    res.set(response.headers);
     response.data.pipe(res);
   } catch (error) {
-    res.status(500).send(`Error fetching video: ${error.message}`);
+    res.status(500).json({ error: error.message });
   }
 });
 
