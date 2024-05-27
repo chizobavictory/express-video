@@ -1,27 +1,32 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+
 const app = express();
 const port = process.env.PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
+app.use(cors()); // Use the CORS middleware
 
 app.get('/proxy', async (req, res) => {
-  try {
-    const targetUrl = req.headers['target-url'];
-    const cookie = req.headers['cookie'];
+  const { targetUrl, cookie } = req.query;
 
+  if (!targetUrl || !cookie) {
+    return res.status(400).send('Missing targetUrl or cookie parameter');
+  }
+
+  try {
     const response = await axios.get(targetUrl, {
       headers: {
-        Cookie: cookie,
+        Cookie: decodeURIComponent(cookie),
       },
-      responseType: 'stream',
+      responseType: 'arraybuffer',
     });
 
-    response.data.pipe(res);
+    res.set('Content-Type', response.headers['content-type']);
+    res.send(response.data);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching video:', error.message);
+    res.status(500).send(`Error fetching video: ${error.message}`);
   }
 });
 
